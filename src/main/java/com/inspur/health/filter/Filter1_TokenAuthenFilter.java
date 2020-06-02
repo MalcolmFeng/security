@@ -1,5 +1,6 @@
 package com.inspur.health.filter;
 
+import com.inspur.health.util.PropertiesUtils;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -16,18 +17,16 @@ import java.io.IOException;
 import java.util.Base64;
 import java.util.Map;
 
+/**
+ * 认证过滤器，校验token
+ */
 public class Filter1_TokenAuthenFilter implements Filter {
 
-    public static int EXPIRE_TIME= 60*60*1000;
-    private String clientId = "net5ijy";  //客户端Id
-    private String clientSecret = "123456"; // 客户端密钥
-    private String checkUrl = "http://localhost:7002/oauth/check_token";  // 认证中心token校验
-    private String loginUrl = "http://localhost:7002/oauth/authorize?response_type=code&client_id=tencent&scope=all&redirect_uri=http://localhost:9090/handler/code?target="; // 认证中心登录页
+    private String checkUri = "/oauth/check_token";  // 认证中心token校验
 
     @Override
     public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
         HttpServletRequest request = (HttpServletRequest)servletRequest;
-        HttpServletResponse response = (HttpServletResponse)servletResponse;
         HttpServletResponseWrapper wrapper = new HttpServletResponseWrapper((HttpServletResponse) servletResponse);
 
         /**
@@ -49,30 +48,37 @@ public class Filter1_TokenAuthenFilter implements Filter {
                 }
             }
         }
+        String loginUrl = PropertiesUtils.getProp("auth.server") + "/oauth/authorize?response_type=code&client_id="+
+                PropertiesUtils.getProp("client.id") + "&scope=all&redirect_uri="+ PropertiesUtils.getProp("app.server") +
+                "/handler/code?target="+ request.getRequestURL();
+
         if (token == null){
-            wrapper.sendRedirect(loginUrl+ request.getRequestURL());  // 重定向地址
+            wrapper.sendRedirect(loginUrl);  // 重定向地址
             return;
         }
-        request.setAttribute("token",token); // 给下一个过滤器使用
 
-
-        /**
-         * 2.访问认证中心校验token
-         */
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-        formData.add("token",token);
-
-        HttpHeaders headers = new HttpHeaders();
-        String authorization = "Basic " + Base64.getUrlEncoder().encodeToString(( clientId+ ":" + clientSecret ).getBytes());
-        headers.set("Authorization",authorization);
-        headers.set("Content-Type","application/x-www-form-urlencoded");
         try{
-            Map map = (Map)new RestTemplate().exchange(checkUrl, HttpMethod.POST, new HttpEntity(formData, headers), Map.class, new Object[0]).getBody();
+            /**
+             * 2.访问认证中心校验token
+             */
+            MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+            formData.add("token",token);
+
+            HttpHeaders authHeader = new HttpHeaders();
+            String Authorization = "Basic " + Base64.getUrlEncoder().encodeToString(( PropertiesUtils.getProp("client.id")+ ":" + PropertiesUtils.getProp("client.secret")).getBytes());
+            authHeader.set("Authorization",Authorization);
+            authHeader.set("Content-Type","application/x-www-form-urlencoded");
+
+            request.setAttribute("authHeader",authHeader);
+
+            Map map = (Map)new RestTemplate().exchange(PropertiesUtils.getProp("auth.server")+checkUri, HttpMethod.POST, new HttpEntity(formData, authHeader), Map.class, new Object[0]).getBody();
+
             // token有效，允许访问资源
+            request.setAttribute("token",token);
             filterChain.doFilter(request, servletResponse);
         }catch (Exception e){
             // token无效，跳转到登录页
-            wrapper.sendRedirect(loginUrl + request.getRequestURL());
+            wrapper.sendRedirect(loginUrl);
         }
     }
 
