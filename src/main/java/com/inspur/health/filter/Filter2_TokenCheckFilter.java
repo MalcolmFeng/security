@@ -51,6 +51,7 @@ public class Filter2_TokenCheckFilter implements Filter {
             if ((Integer)map.get("code") == 200){
                 // 鉴权有效，允许访问资源
                 filterChain.doFilter(request, servletResponse);
+                return;
             }
         }catch (Exception e){
             logger.info(e.toString());
