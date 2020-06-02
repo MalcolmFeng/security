@@ -1,0 +1,9 @@
+Manifest-Version: 1.0
+Main-Class: 
+Class-Path: spring-expression-4.3.6.RELEASE.jar httpclient-4.4.1.jar spr
+ ing-core-4.3.6.RELEASE.jar spring-context-4.3.6.RELEASE.jar log4j-1.2.1
+ 7.jar commons-codec-1.9.jar jstl-1.2.jar slf4j-log4j12-1.7.25.jar sprin
+ g-web-4.3.6.RELEASE.jar httpmime-4.4.1.jar slf4j-api-1.7.25.jar securit
+ y-sdk-0.9.5.jar commons-logging-1.2.jar spring-aop-4.3.6.RELEASE.jar sp
+ ring-beans-4.3.6.RELEASE.jar httpcore-4.4.1.jar
+
